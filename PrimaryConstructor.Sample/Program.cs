@@ -1,6 +1,5 @@
 ﻿using System;
 using Microsoft.Extensions.DependencyInjection;
-using PrimaryConstructor;
 
 namespace PrimaryConstructor.Sample
 {
@@ -37,4 +36,6 @@ namespace PrimaryConstructor.Sample
 			return "World";
 		}
 	}
+
+
 }

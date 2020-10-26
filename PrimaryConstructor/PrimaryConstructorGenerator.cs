@@ -8,17 +8,14 @@ using Microsoft.CodeAnalysis.Text;
 
 namespace PrimaryConstructor
 {
-	[Generator]
-	public class PrimaryConstructorGenerator : ISourceGenerator
-	{
+    [Generator]
+    public class PrimaryConstructorGenerator : ISourceGenerator
+    {
         private const string primaryConstructorAttributeText = @"using System;
 
-namespace PrimaryConstructor
+[AttributeUsage(AttributeTargets.Class, Inherited = true, AllowMultiple = false)]
+public class PrimaryConstructorAttribute : Attribute
 {
-	[AttributeUsage(AttributeTargets.Class, Inherited = true, AllowMultiple = false)]
-	public class PrimaryConstructorAttribute : Attribute
-	{
-	}
 }
 ";
         public void Initialize(GeneratorInitializationContext context)
@@ -55,16 +52,14 @@ namespace PrimaryConstructor
     partial class {classSymbol.Name}
     {{
         public {classSymbol.Name}({string.Join(", ", arguments)})
-        {{
-            {{");
+        {{");
 
-			foreach (var item in fieldList)
-			{
+            foreach (var item in fieldList)
+            {
                 source.Append($@"
-                this.{item.Name} = {item.ParameterName};");
-			}
+            this.{item.Name} = {item.ParameterName};");
+            }
             source.Append($@"
-            }};
         }}
     }}
 }}");
@@ -82,7 +77,7 @@ namespace PrimaryConstructor
             var options = (context.Compilation as CSharpCompilation).SyntaxTrees[0].Options as CSharpParseOptions;
             var compilation = context.Compilation.AddSyntaxTrees(CSharpSyntaxTree.ParseText(SourceText.From(primaryConstructorAttributeText, Encoding.UTF8), options));
 
-            var attributeSymbol = compilation.GetTypeByMetadataName("PrimaryConstructor.PrimaryConstructorAttribute")!;
+            var attributeSymbol = compilation.GetTypeByMetadataName("PrimaryConstructorAttribute")!;
 
             var classSymbols = new List<INamedTypeSymbol>();
             foreach (var clazz in receiver.CandidateClasses)
