@@ -12,7 +12,7 @@
 		<RepositoryUrl>https://github.com/chaowlert/PrimaryConstructor</RepositoryUrl>
 		<PackageTags>source-generator;primary-constructor</PackageTags>
 		<RestoreAdditionalProjectSources>https://pkgs.dev.azure.com/dnceng/public/_packaging/dotnet5/nuget/v3/index.json ;$(RestoreAdditionalProjectSources)</RestoreAdditionalProjectSources>
-		<Version>1.0.2</Version>
+		<Version>1.0.3</Version>
 		<IncludeBuildOutput>false</IncludeBuildOutput>
 	</PropertyGroup>
 

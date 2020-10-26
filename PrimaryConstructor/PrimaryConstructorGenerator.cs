@@ -52,7 +52,7 @@ namespace PrimaryConstructor
             var arguments = fieldList.Select(it => $"{it.Type} {it.ParameterName}");
             var source = new StringBuilder($@"namespace {namespaceName}
 {{
-    public partial class {classSymbol.Name}
+    partial class {classSymbol.Name}
     {{
         public {classSymbol.Name}({string.Join(", ", arguments)})
         {{
