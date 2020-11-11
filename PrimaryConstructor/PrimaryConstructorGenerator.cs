@@ -27,24 +27,24 @@ public class PrimaryConstructorAttribute : Attribute
         {
             InjectPrimaryConstructorAttributes(context);
 
-            if (context.SyntaxReceiver is not SyntaxReceiver receiver)
+            if (!(context.SyntaxReceiver is SyntaxReceiver receiver)) 
                 return;
 
             var classSymbols = GetClassSymbols(context, receiver);
-
             foreach (var classSymbol in classSymbols)
             {
-                context.AddSource($"{classSymbol.Name}.PrimaryConstructor.g.cs", SourceText.From(CreatePrimaryConstructor(classSymbol), Encoding.UTF8));
+                context.AddSource($"{classSymbol.Name}.PrimaryConstructor.g.cs",
+                    SourceText.From(CreatePrimaryConstructor(classSymbol), Encoding.UTF8));
             }
         }
 
-        private string CreatePrimaryConstructor(INamedTypeSymbol classSymbol)
+        private static string CreatePrimaryConstructor(INamedTypeSymbol classSymbol)
         {
             string namespaceName = classSymbol.ContainingNamespace.ToDisplayString();
 
             var fieldList = classSymbol.GetMembers().OfType<IFieldSymbol>()
                 .Where(x => x.CanBeReferencedByName && x.IsReadOnly)
-                .Select(it => new { Type = it.Type.ToDisplayString(), ParameterName = ToCamelCase(it.Name), Name = it.Name })
+                .Select(it => new { Type = it.Type.ToDisplayString(), ParameterName = ToCamelCase(it.Name), it.Name })
                 .ToList();
             var arguments = fieldList.Select(it => $"{it.Type} {it.ParameterName}");
             var source = new StringBuilder($@"namespace {namespaceName}
@@ -59,10 +59,11 @@ public class PrimaryConstructorAttribute : Attribute
                 source.Append($@"
             this.{item.Name} = {item.ParameterName};");
             }
-            source.Append($@"
-        }}
-    }}
-}}");
+            source.Append(@"
+        }
+    }
+}
+");
             return source.ToString();
         }
 
@@ -74,7 +75,7 @@ public class PrimaryConstructorAttribute : Attribute
 
         private static List<INamedTypeSymbol> GetClassSymbols(GeneratorExecutionContext context, SyntaxReceiver receiver)
         {
-            var options = (context.Compilation as CSharpCompilation).SyntaxTrees[0].Options as CSharpParseOptions;
+            var options = ((CSharpCompilation) context.Compilation).SyntaxTrees[0].Options as CSharpParseOptions;
             var compilation = context.Compilation.AddSyntaxTrees(CSharpSyntaxTree.ParseText(SourceText.From(primaryConstructorAttributeText, Encoding.UTF8), options));
 
             var attributeSymbol = compilation.GetTypeByMetadataName("PrimaryConstructorAttribute")!;
@@ -84,7 +85,7 @@ public class PrimaryConstructorAttribute : Attribute
             {
                 var model = compilation.GetSemanticModel(clazz.SyntaxTree);
                 var classSymbol = model.GetDeclaredSymbol(clazz)!;
-                if (classSymbol.GetAttributes().Any(ad => ad.AttributeClass.Equals(attributeSymbol, SymbolEqualityComparer.Default)))
+                if (classSymbol!.GetAttributes().Any(ad => ad.AttributeClass!.Equals(attributeSymbol, SymbolEqualityComparer.Default)))
                 {
                     classSymbols.Add(classSymbol);
                 }

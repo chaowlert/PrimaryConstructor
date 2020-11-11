@@ -1,13 +1,23 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
-	<PropertyGroup>
-		<OutputType>Exe</OutputType>
-		<TargetFramework>netcoreapp3.1</TargetFramework>
-	</PropertyGroup>
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>netcoreapp3.1</TargetFramework>
+    <CompilerGeneratedFilesOutputPath>$(MSBuildProjectDirectory)/generated</CompilerGeneratedFilesOutputPath>
+    <EmitCompilerGeneratedFiles>true</EmitCompilerGeneratedFiles>
+  </PropertyGroup>
 
-	<ItemGroup>
-		<PackageReference Include="Microsoft.Extensions.DependencyInjection" Version="3.1.9" />
-		<PackageReference Include="PrimaryConstructor" Version="1.0.4" />
-	</ItemGroup>
+  <Target Name="ExcludeGenerated" BeforeTargets="AssignTargetPaths">
+    <ItemGroup>
+      <Generated Include="generated/**/*.g.cs" />
+      <Compile Remove="@(Generated)" />
+    </ItemGroup>
+    <Delete Files="@(Generated)" />
+  </Target>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.Extensions.DependencyInjection" Version="3.1.9" />
+    <PackageReference Include="PrimaryConstructor" Version="1.0.4" />
+  </ItemGroup>
 
 </Project>

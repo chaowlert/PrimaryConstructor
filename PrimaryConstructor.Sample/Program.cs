@@ -17,10 +17,10 @@ namespace PrimaryConstructor.Sample
 		}
 	}
 
-	[PrimaryConstructor]
+    [PrimaryConstructor]
 	public partial class MyService
 	{
-		private readonly MyDependency _myDependency;
+        private readonly MyDependency _myDependency;
 
 		public string Greeting()
 		{
@@ -28,8 +28,8 @@ namespace PrimaryConstructor.Sample
 		}
 	}
 
-	[PrimaryConstructor]
-	public partial class MyDependency
+    [PrimaryConstructor]
+    public partial class MyDependency
 	{
 		public string GetName()
 		{
