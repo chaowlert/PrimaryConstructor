@@ -3,6 +3,8 @@ Generate primary constructor from readonly fields
 
 [![NuGet](https://img.shields.io/nuget/v/PrimaryConstructor.svg)](https://www.nuget.org/packages/PrimaryConstructor)
 
+![image](https://user-images.githubusercontent.com/5763993/97197488-4b65ad80-17e0-11eb-9eef-305ce284eb78.png)
+
 ### Get it
 ```
 PM> Install-Package PrimaryConstructor
