@@ -9,15 +9,8 @@ using Microsoft.CodeAnalysis.Text;
 namespace PrimaryConstructor
 {
     [Generator]
-    public class PrimaryConstructorGenerator : ISourceGenerator
+    internal class PrimaryConstructorGenerator : ISourceGenerator
     {
-        private const string primaryConstructorAttributeText = @"using System;
-
-[AttributeUsage(AttributeTargets.Class, Inherited = true, AllowMultiple = false)]
-public class PrimaryConstructorAttribute : Attribute
-{
-}
-";
         public void Initialize(GeneratorInitializationContext context)
         {
             context.RegisterForSyntaxNotifications(() => new SyntaxReceiver());
@@ -25,8 +18,6 @@ public class PrimaryConstructorAttribute : Attribute
 
         public void Execute(GeneratorExecutionContext context)
         {
-            InjectPrimaryConstructorAttributes(context);
-
             if (!(context.SyntaxReceiver is SyntaxReceiver receiver)) 
                 return;
 
@@ -81,28 +72,19 @@ public class PrimaryConstructorAttribute : Attribute
 
         private static List<INamedTypeSymbol> GetClassSymbols(GeneratorExecutionContext context, SyntaxReceiver receiver)
         {
-            var options = ((CSharpCompilation) context.Compilation).SyntaxTrees[0].Options as CSharpParseOptions;
-            var compilation = context.Compilation.AddSyntaxTrees(CSharpSyntaxTree.ParseText(SourceText.From(primaryConstructorAttributeText, Encoding.UTF8), options));
-
-            var attributeSymbol = compilation.GetTypeByMetadataName("PrimaryConstructorAttribute")!;
-
+            var compilation = context.Compilation;
             var classSymbols = new List<INamedTypeSymbol>();
             foreach (var clazz in receiver.CandidateClasses)
             {
                 var model = compilation.GetSemanticModel(clazz.SyntaxTree);
                 var classSymbol = model.GetDeclaredSymbol(clazz)!;
-                if (classSymbol!.GetAttributes().Any(ad => ad.AttributeClass!.Equals(attributeSymbol, SymbolEqualityComparer.Default)))
+                if (classSymbol!.GetAttributes().Any(ad => ad.AttributeClass!.Name == "PrimaryConstructorAttribute"))
                 {
                     classSymbols.Add(classSymbol);
                 }
             }
 
             return classSymbols;
-        }
-
-        private static void InjectPrimaryConstructorAttributes(GeneratorExecutionContext context)
-        {
-            context.AddSource("PrimaryConstructorAttribute.g.cs", SourceText.From(primaryConstructorAttributeText, Encoding.UTF8));
         }
     }
 }
