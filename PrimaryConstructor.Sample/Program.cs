@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 using Microsoft.Extensions.DependencyInjection;
 
 namespace PrimaryConstructor.Sample
@@ -19,12 +20,15 @@ namespace PrimaryConstructor.Sample
 
     [PrimaryConstructor]
 	public partial class MyService
-	{
+    {
         private readonly MyDependency _myDependency;
+
+		//initialized field will not be injected
+        private readonly string _template = "Hello {0}!";
 
 		public string Greeting()
 		{
-			return $"Hello {_myDependency.GetName()}!";
+			return string.Format(_template, _myDependency.GetName());
 		}
 	}
 

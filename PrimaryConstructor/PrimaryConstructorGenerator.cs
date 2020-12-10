@@ -1,9 +1,9 @@
-﻿using System;
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
+using Microsoft.CodeAnalysis.CSharp.Syntax;
 using Microsoft.CodeAnalysis.Text;
 
 namespace PrimaryConstructor
@@ -38,12 +38,18 @@ public class PrimaryConstructorAttribute : Attribute
             }
         }
 
+        private static bool HasInitializer(IFieldSymbol symbol)
+        {
+            var field = symbol.DeclaringSyntaxReferences.ElementAtOrDefault(0)?.GetSyntax() as VariableDeclaratorSyntax;
+            return field?.Initializer != null;
+        }
+
         private static string CreatePrimaryConstructor(INamedTypeSymbol classSymbol)
         {
             string namespaceName = classSymbol.ContainingNamespace.ToDisplayString();
 
             var fieldList = classSymbol.GetMembers().OfType<IFieldSymbol>()
-                .Where(x => x.CanBeReferencedByName && x.IsReadOnly)
+                .Where(x => x.CanBeReferencedByName && x.IsReadOnly && !x.IsStatic && !HasInitializer(x))
                 .Select(it => new { Type = it.Type.ToDisplayString(), ParameterName = ToCamelCase(it.Name), it.Name })
                 .ToList();
             var arguments = fieldList.Select(it => $"{it.Type} {it.ParameterName}");
