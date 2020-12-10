@@ -41,6 +41,8 @@ partial class MyService
 }
 ```
 
+NOTE: readonly fields with initialized to a value will not be included in constructor.
+
 ### Emit generated files
 
 Visual Studio still not fully support source generator, it sometimes shows error marker on symbols referred to the generated code.
