@@ -40,3 +40,27 @@ partial class MyService
     }
 }
 ```
+
+### Emit generated files
+
+Visual Studio still not fully support source generator, it sometimes shows error marker on symbols referred to the generated code.
+Emitting the generated files will allow you to see the code, and also solve Visual Studio error marker problem.
+
+To emit generated files, add following code to your `csproj` file.
+
+```xml
+<PropertyGroup>
+  <CompilerGeneratedFilesOutputPath>$(MSBuildProjectDirectory)/generated</CompilerGeneratedFilesOutputPath>
+  <EmitCompilerGeneratedFiles>true</EmitCompilerGeneratedFiles>
+</PropertyGroup>
+
+<Target Name="ExcludeGenerated" BeforeTargets="AssignTargetPaths">
+  <ItemGroup>
+    <Generated Include="generated/**/*.g.cs" />
+    <Compile Remove="@(Generated)" />
+  </ItemGroup>
+  <Delete Files="@(Generated)" />
+</Target>
+```
+
+Please check [PrimaryConstructor.Sample.csproj](https://github.com/chaowlert/PrimaryConstructor/blob/main/PrimaryConstructor.Sample/PrimaryConstructor.Sample.csproj) for sample.
