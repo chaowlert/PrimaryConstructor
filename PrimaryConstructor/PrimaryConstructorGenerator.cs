@@ -22,9 +22,13 @@ namespace PrimaryConstructor
                 return;
 
             var classSymbols = GetClassSymbols(context, receiver);
+            var classNames = new Dictionary<string, int>();
             foreach (var classSymbol in classSymbols)
             {
-                context.AddSource($"{classSymbol.Name}.PrimaryConstructor.g.cs",
+                classNames.TryGetValue(classSymbol.Name, out var i);
+                var name = i == 0 ? classSymbol.Name : $"{classSymbol.Name}{i + 1}";
+                classNames[classSymbol.Name] = i + 1;
+                context.AddSource($"{name}.PrimaryConstructor.g.cs",
                     SourceText.From(CreatePrimaryConstructor(classSymbol), Encoding.UTF8));
             }
         }
@@ -35,18 +39,38 @@ namespace PrimaryConstructor
             return field?.Initializer != null;
         }
 
+        private static readonly SymbolDisplayFormat TypeFormat = new(
+            globalNamespaceStyle: SymbolDisplayGlobalNamespaceStyle.OmittedAsContaining,
+            typeQualificationStyle: SymbolDisplayTypeQualificationStyle.NameAndContainingTypesAndNamespaces,
+            genericsOptions: SymbolDisplayGenericsOptions.IncludeTypeParameters |
+                             SymbolDisplayGenericsOptions.IncludeTypeConstraints,
+            miscellaneousOptions: SymbolDisplayMiscellaneousOptions.UseSpecialTypes |
+                                  SymbolDisplayMiscellaneousOptions.EscapeKeywordIdentifiers |
+                                  SymbolDisplayMiscellaneousOptions.IncludeNullableReferenceTypeModifier
+        );
+        private static readonly SymbolDisplayFormat PropertyTypeFormat = new(
+            globalNamespaceStyle: SymbolDisplayGlobalNamespaceStyle.OmittedAsContaining,
+            typeQualificationStyle: SymbolDisplayTypeQualificationStyle.NameAndContainingTypesAndNamespaces,
+            genericsOptions: SymbolDisplayGenericsOptions.IncludeTypeParameters,
+            miscellaneousOptions: SymbolDisplayMiscellaneousOptions.UseSpecialTypes |
+                                  SymbolDisplayMiscellaneousOptions.EscapeKeywordIdentifiers |
+                                  SymbolDisplayMiscellaneousOptions.IncludeNullableReferenceTypeModifier
+        );
         private static string CreatePrimaryConstructor(INamedTypeSymbol classSymbol)
         {
             string namespaceName = classSymbol.ContainingNamespace.ToDisplayString();
 
             var fieldList = classSymbol.GetMembers().OfType<IFieldSymbol>()
                 .Where(x => x.CanBeReferencedByName && x.IsReadOnly && !x.IsStatic && !HasInitializer(x))
-                .Select(it => new { Type = it.Type.ToDisplayString(), ParameterName = ToCamelCase(it.Name), it.Name })
+                .Select(it => new { Type = it.Type.ToDisplayString(PropertyTypeFormat), ParameterName = ToCamelCase(it.Name), it.Name })
                 .ToList();
             var arguments = fieldList.Select(it => $"{it.Type} {it.ParameterName}");
+            var fullTypeName = classSymbol.ToDisplayString(TypeFormat);
+            var i = fullTypeName.IndexOf('<');
+            var generic = i < 0 ? "" : fullTypeName.Substring(i);
             var source = new StringBuilder($@"namespace {namespaceName}
 {{
-    partial class {classSymbol.Name}
+    partial class {classSymbol.Name}{generic}
     {{
         public {classSymbol.Name}({string.Join(", ", arguments)})
         {{");
