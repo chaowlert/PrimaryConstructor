@@ -1,4 +1,5 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using Microsoft.CodeAnalysis;
@@ -8,6 +9,14 @@ using Microsoft.CodeAnalysis.Text;
 
 namespace PrimaryConstructor
 {
+    public class MemberSymbolInfo
+    {
+        public string Type { get; set; }
+        public string ParameterName { get; set; }
+        public string Name { get; set; }
+        public IEnumerable<AttributeData> Attributes { get; set; }
+    }
+    
     [Generator]
     internal class PrimaryConstructorGenerator : ISourceGenerator
     {
@@ -29,7 +38,7 @@ namespace PrimaryConstructor
                 var name = i == 0 ? classSymbol.Name : $"{classSymbol.Name}{i + 1}";
                 classNames[classSymbol.Name] = i + 1;
                 context.AddSource($"{name}.PrimaryConstructor.g.cs",
-                    SourceText.From(CreatePrimaryConstructor(classSymbol), Encoding.UTF8));
+                    SourceText.From(CreatePrimaryConstructor(classSymbol, context), Encoding.UTF8));
             }
         }
 
@@ -38,6 +47,16 @@ namespace PrimaryConstructor
             var field = symbol.DeclaringSyntaxReferences.ElementAtOrDefault(0)?.GetSyntax() as VariableDeclaratorSyntax;
             return field?.Initializer != null;
         }
+        
+        private static bool HasInitializer(IPropertySymbol symbol)
+        {
+            var field = symbol.DeclaringSyntaxReferences.ElementAtOrDefault(0)?.GetSyntax() as VariableDeclaratorSyntax;
+            return field?.Initializer != null;
+        }
+
+        private static bool HasIgnoreAttribute(ISymbol symbol) => symbol
+            .GetAttributes()
+            .Any(x => x.AttributeClass.Name == typeof(IgnorePrimaryConstructorAttribute).Name);
 
         private static readonly SymbolDisplayFormat TypeFormat = new(
             globalNamespaceStyle: SymbolDisplayGlobalNamespaceStyle.OmittedAsContaining,
@@ -56,15 +75,20 @@ namespace PrimaryConstructor
                                   SymbolDisplayMiscellaneousOptions.EscapeKeywordIdentifiers |
                                   SymbolDisplayMiscellaneousOptions.IncludeNullableReferenceTypeModifier
         );
-        private static string CreatePrimaryConstructor(INamedTypeSymbol classSymbol)
+        private static string CreatePrimaryConstructor(INamedTypeSymbol classSymbol,
+            GeneratorExecutionContext context)
         {
             string namespaceName = classSymbol.ContainingNamespace.ToDisplayString();
 
-            var fieldList = classSymbol.GetMembers().OfType<IFieldSymbol>()
-                .Where(x => x.CanBeReferencedByName && x.IsReadOnly && !x.IsStatic && !HasInitializer(x))
-                .Select(it => new { Type = it.Type.ToDisplayString(PropertyTypeFormat), ParameterName = ToCamelCase(it.Name), it.Name })
-                .ToList();
-            var arguments = fieldList.Select(it => $"{it.Type} {it.ParameterName}");
+            var baseClassConstructorArgs = GetMembers(classSymbol.BaseType, context, true);
+            var baseConstructorInheritance = baseClassConstructorArgs.Count <= 0
+                ? ""
+                : $" : base({string.Join(", ", baseClassConstructorArgs.Select(it => it.ParameterName))})";
+            
+            var memberList = GetMembers(classSymbol, context, false);
+            var arguments = memberList
+                .Select(it => $"{it.Type} {it.ParameterName}")
+                .Union(baseClassConstructorArgs.Select(it => $"{it.Type} {it.ParameterName}"));
             var fullTypeName = classSymbol.ToDisplayString(TypeFormat);
             var i = fullTypeName.IndexOf('<');
             var generic = i < 0 ? "" : fullTypeName.Substring(i);
@@ -72,10 +96,10 @@ namespace PrimaryConstructor
 {{
     partial class {classSymbol.Name}{generic}
     {{
-        public {classSymbol.Name}({string.Join(", ", arguments)})
+        public {classSymbol.Name}({string.Join(", ", arguments)}){baseConstructorInheritance}
         {{");
 
-            foreach (var item in fieldList)
+            foreach (var item in memberList)
             {
                 source.Append($@"
             this.{item.Name} = {item.ParameterName};");
@@ -85,7 +109,47 @@ namespace PrimaryConstructor
     }
 }
 ");
+
             return source.ToString();
+        }
+
+        private static List<MemberSymbolInfo> GetMembers(INamedTypeSymbol classSymbol,
+            GeneratorExecutionContext context, bool recursive)
+        {
+            var fieldList = classSymbol.GetMembers().OfType<IFieldSymbol>()
+                .Where(x => x.CanBeReferencedByName && x.IsReadOnly && !x.IsStatic && 
+                            !HasInitializer(x) && !HasIgnoreAttribute(x))
+                .Select(it => new MemberSymbolInfo
+                {
+                    Type = it.Type.ToDisplayString(PropertyTypeFormat), 
+                    ParameterName = ToCamelCase(it.Name), 
+                    Name = it.Name,
+                    Attributes = it.GetAttributes()
+                })
+                .ToList();
+            
+            var props = classSymbol.GetMembers().OfType<IPropertySymbol>()
+                .Where(x => x.CanBeReferencedByName && x.IsReadOnly && !x.IsStatic && 
+                            !HasInitializer(x) && !HasIgnoreAttribute(x))
+                .Select(it => new MemberSymbolInfo
+                {
+                    Type = it.Type.ToDisplayString(PropertyTypeFormat), 
+                    ParameterName = ToCamelCase(it.Name), 
+                    Name = it.Name,
+                    Attributes = it.GetAttributes()
+                })
+                .ToList();
+            fieldList.AddRange(props);
+
+            //context.Compilation.GetSemanticModel();
+
+            if (recursive && classSymbol.BaseType != null && 
+                $"{classSymbol.BaseType.ContainingNamespace}.{classSymbol.BaseType.Name}" != "System.Object")
+            {
+                fieldList.AddRange(GetMembers(classSymbol.BaseType, context, true));
+            }
+
+            return fieldList;
         }
 
         private static string ToCamelCase(string name)
