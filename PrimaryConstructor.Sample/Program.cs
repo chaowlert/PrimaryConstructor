@@ -1,5 +1,4 @@
 ﻿using System;
-using System.Collections.Generic;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 
@@ -12,22 +11,37 @@ namespace PrimaryConstructor.Sample
 			var services = new ServiceCollection();
 			services.AddSingleton<MyDependency>();
 			services.AddSingleton<MyDependencyTwo>();
-			services.AddSingleton<MyServiceThree>();
+			services.AddSingleton<MyMainService>();
 			services.AddLogging(builder => builder.AddConsole());
 			var injector = services.BuildServiceProvider();
-			var myService = injector.GetService<MyServiceThree>();
+			var myService = injector.GetService<MyMainService>();
 
 			Console.WriteLine(myService.Greeting());
 		}
 	}
 
     [PrimaryConstructor]
-	public partial class MyServiceThree : MyServiceBaseTwo
+	public partial class MyMainService
+
+		// fields/props in based class with [PrimaryConstructor] will be injected
+        : MyServiceBaseTwo
     {
+		// readonly field will be injected
 	    private readonly MyDependencyTwo _myDependencyTwo;
 
-		//initialized field will not be injected
+		// readonly prop will be injected
+        public MyDependency MyDependency { get; }
+
+		// initialized field will not be injected
         private readonly string _template = "{0} {1}!";
+
+		// fields/props with [IgnorePrimaryConstructor] will not be injected
+        [IgnorePrimaryConstructor] 
+        private readonly string _ignored;
+
+		// fields/props with [IncludePrimaryConstructor] will be injected
+		[IncludePrimaryConstructor]
+        private MyDependency _included;
 
 		public string Greeting()
 		{
@@ -40,7 +54,6 @@ namespace PrimaryConstructor.Sample
 	[PrimaryConstructor]
 	public partial class MyServiceBaseTwo : MyServiceBase
 	{
-		public MyDependency MyDependency { get; }
 	}
 
 	[PrimaryConstructor]
@@ -58,7 +71,8 @@ namespace PrimaryConstructor.Sample
 		}
 	}
     
-    public class MyDependencyTwo
+	[PrimaryConstructor]
+    public partial class MyDependencyTwo
     {
 	    public string GetName()
 	    {

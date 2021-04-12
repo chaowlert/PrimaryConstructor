@@ -1,9 +1,7 @@
 ﻿using System;
 
-namespace PrimaryConstructor
+[AttributeUsage(AttributeTargets.Class)]
+// ReSharper disable once CheckNamespace
+public class PrimaryConstructorAttribute : Attribute
 {
-    [AttributeUsage(AttributeTargets.Class, Inherited = true, AllowMultiple = false)]
-    public class PrimaryConstructorAttribute : Attribute
-    {
-    }
 }
