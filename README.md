@@ -1,5 +1,5 @@
 # PrimaryConstructor
-Generate primary constructor from readonly fields
+Generate primary constructor from readonly fields & properties
 
 [![NuGet](https://img.shields.io/nuget/v/PrimaryConstructor.svg)](https://www.nuget.org/packages/PrimaryConstructor)
 
@@ -41,7 +41,12 @@ partial class MyService
 }
 ```
 
-NOTE: readonly fields with initialized to a value will not be included in constructor.
+### Rules
+
+1. **readonly** fields & properties **without initializer** will be automatically injected.
+2. if the service has based type, based type must also annotated with `PrimaryConstructor` in order to inject members from based type.
+3. you can exclude members from injection by annotated with `IgnorePrimaryConstructor`.
+4. you can include members to injection by annotated with `IncludePrimaryConstructor`.
 
 ### Emit generated files
 
