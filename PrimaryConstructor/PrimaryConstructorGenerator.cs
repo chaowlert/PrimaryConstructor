@@ -14,6 +14,7 @@ namespace PrimaryConstructor
         public string Type { get; set; }
         public string ParameterName { get; set; }
         public string Name { get; set; }
+        public IEnumerable<AttributeData> Attributes { get; set; }
     }
     
     [Generator]
@@ -37,7 +38,7 @@ namespace PrimaryConstructor
                 var name = i == 0 ? classSymbol.Name : $"{classSymbol.Name}{i + 1}";
                 classNames[classSymbol.Name] = i + 1;
                 context.AddSource($"{name}.PrimaryConstructor.g.cs",
-                    SourceText.From(CreatePrimaryConstructor(classSymbol), Encoding.UTF8));
+                    SourceText.From(CreatePrimaryConstructor(classSymbol, context), Encoding.UTF8));
             }
         }
 
@@ -52,6 +53,10 @@ namespace PrimaryConstructor
             var field = symbol.DeclaringSyntaxReferences.ElementAtOrDefault(0)?.GetSyntax() as VariableDeclaratorSyntax;
             return field?.Initializer != null;
         }
+
+        private static bool HasIgnoreAttribute(ISymbol symbol) => symbol
+            .GetAttributes()
+            .Any(x => x.AttributeClass.Name == typeof(IgnorePrimaryConstructorAttribute).Name);
 
         private static readonly SymbolDisplayFormat TypeFormat = new(
             globalNamespaceStyle: SymbolDisplayGlobalNamespaceStyle.OmittedAsContaining,
@@ -70,17 +75,18 @@ namespace PrimaryConstructor
                                   SymbolDisplayMiscellaneousOptions.EscapeKeywordIdentifiers |
                                   SymbolDisplayMiscellaneousOptions.IncludeNullableReferenceTypeModifier
         );
-        private static string CreatePrimaryConstructor(INamedTypeSymbol classSymbol)
+        private static string CreatePrimaryConstructor(INamedTypeSymbol classSymbol,
+            GeneratorExecutionContext context)
         {
             string namespaceName = classSymbol.ContainingNamespace.ToDisplayString();
 
-            var baseClassConstructorArgs = GeMembers(classSymbol.BaseType, true);
+            var baseClassConstructorArgs = GetMembers(classSymbol.BaseType, context, true);
             var baseConstructorInheritance = baseClassConstructorArgs.Count <= 0
                 ? ""
                 : $" : base({string.Join(", ", baseClassConstructorArgs.Select(it => it.ParameterName))})";
             
-            var fieldList = GeMembers(classSymbol, false);
-            var arguments = fieldList
+            var memberList = GetMembers(classSymbol, context, false);
+            var arguments = memberList
                 .Select(it => $"{it.Type} {it.ParameterName}")
                 .Union(baseClassConstructorArgs.Select(it => $"{it.Type} {it.ParameterName}"));
             var fullTypeName = classSymbol.ToDisplayString(TypeFormat);
@@ -93,7 +99,7 @@ namespace PrimaryConstructor
         public {classSymbol.Name}({string.Join(", ", arguments)}){baseConstructorInheritance}
         {{");
 
-            foreach (var item in fieldList)
+            foreach (var item in memberList)
             {
                 source.Append($@"
             this.{item.Name} = {item.ParameterName};");
@@ -118,39 +124,55 @@ namespace PrimaryConstructor
                 }
             }
 
+            foreach (var member in memberList)
+            {
+                source.AppendLine($"{member.Name} = {member.Attributes.Count()}");
+                foreach (var att in member.Attributes)
+                {
+                    source.AppendLine($"  {att.AttributeClass.Name}");
+                    source.AppendLine($"  {typeof(IgnorePrimaryConstructorAttribute).Name}");
+                }
+            }
+
             source.AppendLine("*/");
             
             return source.ToString();
         }
 
-        private static List<MemberSymbolInfo> GeMembers(INamedTypeSymbol classSymbol, bool recursive)
+        private static List<MemberSymbolInfo> GetMembers(INamedTypeSymbol classSymbol,
+            GeneratorExecutionContext context, bool recursive)
         {
             var fieldList = classSymbol.GetMembers().OfType<IFieldSymbol>()
-                .Where(x => x.CanBeReferencedByName && x.IsReadOnly && !x.IsStatic && !HasInitializer(x))
+                .Where(x => x.CanBeReferencedByName && x.IsReadOnly && !x.IsStatic && 
+                            !HasInitializer(x) && !HasIgnoreAttribute(x))
                 .Select(it => new MemberSymbolInfo
                 {
                     Type = it.Type.ToDisplayString(PropertyTypeFormat), 
                     ParameterName = ToCamelCase(it.Name), 
-                    Name = it.Name
+                    Name = it.Name,
+                    Attributes = it.GetAttributes()
                 })
                 .ToList();
             
             var props = classSymbol.GetMembers().OfType<IPropertySymbol>()
-                .Where(x => x.CanBeReferencedByName && x.IsReadOnly && !x.IsStatic && !HasInitializer(x))
+                .Where(x => x.CanBeReferencedByName && x.IsReadOnly && !x.IsStatic && 
+                            !HasInitializer(x) && !HasIgnoreAttribute(x))
                 .Select(it => new MemberSymbolInfo
                 {
                     Type = it.Type.ToDisplayString(PropertyTypeFormat), 
                     ParameterName = ToCamelCase(it.Name), 
-                    Name = it.Name
+                    Name = it.Name,
+                    Attributes = it.GetAttributes()
                 })
                 .ToList();
-            
             fieldList.AddRange(props);
+
+            //context.Compilation.GetSemanticModel();
 
             if (recursive && classSymbol.BaseType != null && 
                 $"{classSymbol.BaseType.ContainingNamespace}.{classSymbol.BaseType.Name}" != "System.Object")
             {
-                fieldList.AddRange(GeMembers(classSymbol.BaseType, true));
+                fieldList.AddRange(GetMembers(classSymbol.BaseType, context, true));
             }
 
             return fieldList;

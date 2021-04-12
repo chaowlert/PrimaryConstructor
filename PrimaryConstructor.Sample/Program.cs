@@ -24,7 +24,7 @@ namespace PrimaryConstructor.Sample
     [PrimaryConstructor]
 	public partial class MyServiceThree : MyServiceBaseTwo
     {
-        private readonly MyDependencyTwo _myDependencyTwo;
+	    private readonly MyDependencyTwo _myDependencyTwo;
 
 		//initialized field will not be injected
         private readonly string _template = "{0} {1}!";
