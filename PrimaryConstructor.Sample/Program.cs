@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
 
 namespace PrimaryConstructor.Sample
 {
@@ -10,26 +11,47 @@ namespace PrimaryConstructor.Sample
 		{
 			var services = new ServiceCollection();
 			services.AddSingleton<MyDependency>();
-			services.AddSingleton<MyService>();
+			services.AddSingleton<MyDependencyTwo>();
+			services.AddSingleton<MyServiceThree>();
+			services.AddLogging(builder => builder.AddConsole());
 			var injector = services.BuildServiceProvider();
-			var myService = injector.GetService<MyService>();
+			var myService = injector.GetService<MyServiceThree>();
 
 			Console.WriteLine(myService.Greeting());
 		}
 	}
 
     [PrimaryConstructor]
-	public partial class MyService
+	public partial class MyServiceThree : MyServiceBaseTwo
     {
-        private readonly MyDependency _myDependency;
+        private readonly MyDependencyTwo _myDependencyTwo;
 
 		//initialized field will not be injected
-        private readonly string _template = "Hello {0}!";
+        private readonly string _template = "{0} {1}!";
 
 		public string Greeting()
 		{
-			return string.Format(_template, _myDependency.GetName());
+			return string.Format(_template,
+				MyDependency.GetName(),
+				_myDependencyTwo.GetName());
 		}
+	}
+
+	[PrimaryConstructor]
+	public partial class MyServiceBaseTwo : MyServiceBase
+	{
+		public MyDependency MyDependency { get; }
+	}
+
+	[PrimaryConstructor]
+	public partial class MyServiceBase
+	{
+		private readonly ILogger<MyServiceBase> _logger;
+
+		/*public MyServiceBase(ILogger<MyServiceBase> logger)
+		{
+			_logger = logger;
+		}*/
 	}
 
     [PrimaryConstructor]
@@ -37,9 +59,15 @@ namespace PrimaryConstructor.Sample
 	{
 		public string GetName()
 		{
-			return "World";
+			return "Hello";
 		}
 	}
-
-
+    
+    public class MyDependencyTwo
+    {
+	    public string GetName()
+	    {
+		    return "World";
+	    }
+    }
 }
