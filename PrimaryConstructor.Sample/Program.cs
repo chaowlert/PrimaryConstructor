@@ -47,11 +47,6 @@ namespace PrimaryConstructor.Sample
 	public partial class MyServiceBase
 	{
 		private readonly ILogger<MyServiceBase> _logger;
-
-		/*public MyServiceBase(ILogger<MyServiceBase> logger)
-		{
-			_logger = logger;
-		}*/
 	}
 
     [PrimaryConstructor]
