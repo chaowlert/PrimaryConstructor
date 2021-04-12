@@ -110,32 +110,6 @@ namespace PrimaryConstructor
 }
 ");
 
-            source.AppendLine($"/* {DateTime.Now}");
-            source.AppendLine($"BaseType: {classSymbol.BaseType.ContainingNamespace}.{classSymbol.BaseType.Name}");
-            if (classSymbol.BaseType != null)
-            {
-                foreach (var c in classSymbol.BaseType.Constructors)
-                {
-                    source.AppendLine("Constructor: " + c.Parameters.Length);
-                    foreach (var p in c.Parameters)
-                    {
-                        source.AppendLine($"  {p.Name}: {p.Type}");
-                    }
-                }
-            }
-
-            foreach (var member in memberList)
-            {
-                source.AppendLine($"{member.Name} = {member.Attributes.Count()}");
-                foreach (var att in member.Attributes)
-                {
-                    source.AppendLine($"  {att.AttributeClass.Name}");
-                    source.AppendLine($"  {typeof(IgnorePrimaryConstructorAttribute).Name}");
-                }
-            }
-
-            source.AppendLine("*/");
-            
             return source.ToString();
         }
 
