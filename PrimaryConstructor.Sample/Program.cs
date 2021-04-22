@@ -32,6 +32,9 @@ namespace PrimaryConstructor.Sample
 		// readonly prop will be injected
         public MyDependency MyDependency { get; }
 
+		// readonly prop with body will be ignored
+        public MyDependency MyDependency2 => null;
+
 		// initialized field will not be injected
         private readonly string _template = "{0} {1}!";
 

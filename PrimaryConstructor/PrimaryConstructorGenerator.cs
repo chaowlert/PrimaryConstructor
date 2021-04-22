@@ -1,5 +1,6 @@
 ﻿using System.Collections.Generic;
 using System.Linq;
+using System.Runtime.CompilerServices;
 using System.Text;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
@@ -122,8 +123,9 @@ namespace PrimaryConstructor
                 .ToList();
 
             var props = classSymbol.GetMembers().OfType<IPropertySymbol>()
-                .Where(x => x.CanBeReferencedByName && !x.IsStatic && 
-                            (x.IsReadOnly && !HasInitializer(x) || HasAttribute(x, nameof(IncludePrimaryConstructorAttribute))) && 
+                .Where(x => x.CanBeReferencedByName && !x.IsStatic &&
+                            (x.IsReadOnly && !HasInitializer(x) && HasAttribute(x.GetMethod, nameof(CompilerGeneratedAttribute)) || 
+                                HasAttribute(x, nameof(IncludePrimaryConstructorAttribute))) && 
                             !HasAttribute(x, nameof(IgnorePrimaryConstructorAttribute)))
                 .Select(it => new MemberSymbolInfo
                 {
