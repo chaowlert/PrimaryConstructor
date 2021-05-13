@@ -107,6 +107,15 @@ namespace PrimaryConstructor
             return source.ToString();
         }
 
+        private static bool IsAutoProperty(IPropertySymbol propertySymbol)
+        {
+            // Get fields declared in the same type as the property
+            var fields = propertySymbol.ContainingType.GetMembers().OfType<IFieldSymbol>();
+
+            // Check if one field is associated to
+            return fields.Any(field => !field.CanBeReferencedByName && SymbolEqualityComparer.Default.Equals(field.AssociatedSymbol, propertySymbol));
+        }
+
         private static List<MemberSymbolInfo> GetMembers(INamedTypeSymbol classSymbol, bool recursive)
         {
             var fieldList = classSymbol.GetMembers().OfType<IFieldSymbol>()
@@ -124,7 +133,7 @@ namespace PrimaryConstructor
 
             var props = classSymbol.GetMembers().OfType<IPropertySymbol>()
                 .Where(x => x.CanBeReferencedByName && !x.IsStatic &&
-                            (x.IsReadOnly && !HasInitializer(x) && HasAttribute(x.GetMethod, nameof(CompilerGeneratedAttribute)) || 
+                            (x.IsReadOnly && !HasInitializer(x) && IsAutoProperty(x) || 
                                 HasAttribute(x, nameof(IncludePrimaryConstructorAttribute))) && 
                             !HasAttribute(x, nameof(IgnorePrimaryConstructorAttribute)))
                 .Select(it => new MemberSymbolInfo
