@@ -88,7 +88,7 @@ namespace PrimaryConstructor
 
             var memberList = GetMembers(classSymbol, false);
             var arguments = (baseClassConstructorArgs == null ? memberList : memberList.Concat(baseClassConstructorArgs))
-                .Select(it => $"{it.Type} {it.ParameterName}");
+                .Select(it => $"global::{it.Type} {it.ParameterName}");
             var fullTypeName = classSymbol.ToDisplayString(TypeFormat);
             var i = fullTypeName.IndexOf('<');
             var generic = i < 0 ? "" : fullTypeName.Substring(i);
