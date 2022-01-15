@@ -59,7 +59,7 @@ namespace PrimaryConstructor
             .Any(x => x.AttributeClass?.Name == name);
 
         private static readonly SymbolDisplayFormat TypeFormat = new(
-            globalNamespaceStyle: SymbolDisplayGlobalNamespaceStyle.OmittedAsContaining,
+            globalNamespaceStyle: SymbolDisplayGlobalNamespaceStyle.Included,
             typeQualificationStyle: SymbolDisplayTypeQualificationStyle.NameAndContainingTypesAndNamespaces,
             genericsOptions: SymbolDisplayGenericsOptions.IncludeTypeParameters |
                              SymbolDisplayGenericsOptions.IncludeTypeConstraints,
@@ -68,7 +68,7 @@ namespace PrimaryConstructor
                                   SymbolDisplayMiscellaneousOptions.IncludeNullableReferenceTypeModifier
         );
         private static readonly SymbolDisplayFormat PropertyTypeFormat = new(
-            globalNamespaceStyle: SymbolDisplayGlobalNamespaceStyle.OmittedAsContaining,
+            globalNamespaceStyle: SymbolDisplayGlobalNamespaceStyle.Included,
             typeQualificationStyle: SymbolDisplayTypeQualificationStyle.NameAndContainingTypesAndNamespaces,
             genericsOptions: SymbolDisplayGenericsOptions.IncludeTypeParameters,
             miscellaneousOptions: SymbolDisplayMiscellaneousOptions.UseSpecialTypes |
@@ -88,7 +88,7 @@ namespace PrimaryConstructor
 
             var memberList = GetMembers(classSymbol, false);
             var arguments = (baseClassConstructorArgs == null ? memberList : memberList.Concat(baseClassConstructorArgs))
-                .Select(it => $"global::{it.Type} {it.ParameterName}");
+                .Select(it => $"{it.Type} {it.ParameterName}");
             var fullTypeName = classSymbol.ToDisplayString(TypeFormat);
             var i = fullTypeName.IndexOf('<');
             var generic = i < 0 ? "" : fullTypeName.Substring(i);
