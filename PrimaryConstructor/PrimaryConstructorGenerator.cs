@@ -42,10 +42,16 @@ namespace PrimaryConstructor
             }
         }
 
-        private static bool HasInitializer(ISymbol symbol)
+        private static bool HasFieldInitializer(IFieldSymbol symbol)
         {
             var field = symbol.DeclaringSyntaxReferences.ElementAtOrDefault(0)?.GetSyntax() as VariableDeclaratorSyntax;
             return field?.Initializer != null;
+        }
+
+        private static bool HasPropertyInitializer(IPropertySymbol symbol)
+        {
+            var property = symbol.DeclaringSyntaxReferences.ElementAtOrDefault(0)?.GetSyntax() as PropertyDeclarationSyntax;
+            return property?.Initializer != null;
         }
 
         private static bool HasAttribute(ISymbol symbol, string name) => symbol
@@ -53,7 +59,7 @@ namespace PrimaryConstructor
             .Any(x => x.AttributeClass?.Name == name);
 
         private static readonly SymbolDisplayFormat TypeFormat = new(
-            globalNamespaceStyle: SymbolDisplayGlobalNamespaceStyle.OmittedAsContaining,
+            globalNamespaceStyle: SymbolDisplayGlobalNamespaceStyle.Included,
             typeQualificationStyle: SymbolDisplayTypeQualificationStyle.NameAndContainingTypesAndNamespaces,
             genericsOptions: SymbolDisplayGenericsOptions.IncludeTypeParameters |
                              SymbolDisplayGenericsOptions.IncludeTypeConstraints,
@@ -62,7 +68,7 @@ namespace PrimaryConstructor
                                   SymbolDisplayMiscellaneousOptions.IncludeNullableReferenceTypeModifier
         );
         private static readonly SymbolDisplayFormat PropertyTypeFormat = new(
-            globalNamespaceStyle: SymbolDisplayGlobalNamespaceStyle.OmittedAsContaining,
+            globalNamespaceStyle: SymbolDisplayGlobalNamespaceStyle.Included,
             typeQualificationStyle: SymbolDisplayTypeQualificationStyle.NameAndContainingTypesAndNamespaces,
             genericsOptions: SymbolDisplayGenericsOptions.IncludeTypeParameters,
             miscellaneousOptions: SymbolDisplayMiscellaneousOptions.UseSpecialTypes |
@@ -120,7 +126,7 @@ namespace PrimaryConstructor
         {
             var fieldList = classSymbol.GetMembers().OfType<IFieldSymbol>()
                 .Where(x => x.CanBeReferencedByName && !x.IsStatic &&
-                            (x.IsReadOnly && !HasInitializer(x) || HasAttribute(x, nameof(IncludePrimaryConstructorAttribute))) && 
+                            (x.IsReadOnly && !HasFieldInitializer(x) || HasAttribute(x, nameof(IncludePrimaryConstructorAttribute))) && 
                             !HasAttribute(x, nameof(IgnorePrimaryConstructorAttribute)))
                 .Select(it => new MemberSymbolInfo
                 {
@@ -133,7 +139,7 @@ namespace PrimaryConstructor
 
             var props = classSymbol.GetMembers().OfType<IPropertySymbol>()
                 .Where(x => x.CanBeReferencedByName && !x.IsStatic &&
-                            (x.IsReadOnly && !HasInitializer(x) && IsAutoProperty(x) || 
+                            (x.IsReadOnly && !HasPropertyInitializer(x) && IsAutoProperty(x) || 
                                 HasAttribute(x, nameof(IncludePrimaryConstructorAttribute))) && 
                             !HasAttribute(x, nameof(IgnorePrimaryConstructorAttribute)))
                 .Select(it => new MemberSymbolInfo

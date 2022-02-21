@@ -1,0 +1,6 @@
+; 4-column space indentation
+[*]
+indent_style = space
+
+[*.{cs,tt}]
+indent_size = 4
