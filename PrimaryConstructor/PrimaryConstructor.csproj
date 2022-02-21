@@ -2,7 +2,7 @@
 
 	<PropertyGroup>
 		<TargetFramework>netstandard2.0</TargetFramework>
-		<LangVersion>preview</LangVersion>
+		<LangVersion>10</LangVersion>
 		<Authors>Chaowlert Chaisrichalermpol</Authors>
 		<GeneratePackageOnBuild>true</GeneratePackageOnBuild>
 		<Description>Generate primary constructor from readonly fields</Description>
@@ -12,7 +12,7 @@
 		<RepositoryUrl>https://github.com/chaowlert/PrimaryConstructor</RepositoryUrl>
 		<PackageTags>source-generator;primary-constructor</PackageTags>
 		<RestoreAdditionalProjectSources>https://pkgs.dev.azure.com/dnceng/public/_packaging/dotnet5/nuget/v3/index.json ;$(RestoreAdditionalProjectSources)</RestoreAdditionalProjectSources>
-		<Version>1.3.2</Version>
+		<Version>1.4.0</Version>
 	</PropertyGroup>
 
 	<ItemGroup>
