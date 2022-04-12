@@ -1,4 +1,5 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using System.Linq;
 using System.Runtime.CompilerServices;
 using System.Text;
@@ -87,8 +88,13 @@ namespace PrimaryConstructor
                 : "";
 
             var memberList = GetMembers(classSymbol, false);
-            var arguments = (baseClassConstructorArgs == null ? memberList : memberList.Concat(baseClassConstructorArgs))
-                .Select(it => $"{it.Type} {it.ParameterName}");
+            var argumentList = baseClassConstructorArgs == null
+                ? memberList
+                : memberList.Concat(baseClassConstructorArgs);
+            var arguments = argumentList.Select(it =>
+                "\n" + new string(' ', 12)
+                + string.Join("", GetParameterAttributes(it).Select(a => $"[{a}] "))
+                + $"{it.Type} {it.ParameterName}");
             var fullTypeName = classSymbol.ToDisplayString(TypeFormat);
             var i = fullTypeName.IndexOf('<');
             var generic = i < 0 ? "" : fullTypeName.Substring(i);
@@ -96,7 +102,7 @@ namespace PrimaryConstructor
 {{
     partial class {classSymbol.Name}{generic}
     {{
-        public {classSymbol.Name}({string.Join(", ", arguments)}){baseConstructorInheritance}
+        public {classSymbol.Name}({string.Join(",", arguments)}){baseConstructorInheritance}
         {{");
 
             foreach (var item in memberList)
@@ -176,6 +182,27 @@ namespace PrimaryConstructor
                 select model.GetDeclaredSymbol(clazz)! into classSymbol
                 where HasAttribute(classSymbol, nameof(PrimaryConstructorAttribute))
                 select classSymbol;
+        }
+
+        private static IEnumerable<AttributeData> GetParameterAttributes(MemberSymbolInfo parameter)
+        {
+            foreach (var attribute in parameter.Attributes)
+            {
+                var attributeUsage = attribute.AttributeClass
+                    .GetAttributes()
+                    .FirstOrDefault(x => x.AttributeClass?.Name == nameof(AttributeUsageAttribute));
+
+                if (attributeUsage != null)
+                {
+                    TypedConstant validOn = attributeUsage.ConstructorArguments[0];
+                    AttributeTargets targets = (AttributeTargets)validOn.Value;
+
+                    if (targets.HasFlag(AttributeTargets.Parameter))
+                    {
+                        yield return attribute;
+                    }    
+                }
+            }
         }
     }
 }

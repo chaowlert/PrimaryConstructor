@@ -1,4 +1,5 @@
 ﻿using System;
+using System.ComponentModel.DataAnnotations;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 
@@ -40,6 +41,11 @@ namespace PrimaryConstructor.Sample
 
         // readonly prop will be injected
         public MyDependency MyDependency { get; }
+
+        // Attributes that can be used on parameters will be added to the constructor parameter
+        [Display(AutoGenerateField = true, Description = "Applicable to parameters")]
+        [DisplayFormat(DataFormatString = "Not applicable to parameters")]
+        public string WithAttributes { get; }
 
         // readonly prop with body will be ignored
         public NotRegisteredDependency IgnoredProperty1 => null;
