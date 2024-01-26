@@ -37,8 +37,15 @@ namespace PrimaryConstructor
                 classNames.TryGetValue(classSymbol.Name, out var i);
                 var name = i == 0 ? classSymbol.Name : $"{classSymbol.Name}{i + 1}";
                 classNames[classSymbol.Name] = i + 1;
-                context.AddSource($"{name}.PrimaryConstructor.g.cs",
-                    SourceText.From(CreatePrimaryConstructor(classSymbol), Encoding.UTF8));
+                
+                var source = CSharpSyntaxTree
+                    .ParseText(SourceText.From(CreatePrimaryConstructor(classSymbol), Encoding.UTF8))
+                    .GetRoot()
+                    .NormalizeWhitespace()
+                    .SyntaxTree
+                    .GetText();
+                
+                context.AddSource($"{name}.PrimaryConstructor.g.cs", source);
             }
         }
 
@@ -89,12 +96,21 @@ namespace PrimaryConstructor
             var memberList = GetMembers(classSymbol, false);
             var arguments = (baseClassConstructorArgs == null ? memberList : memberList.Concat(baseClassConstructorArgs))
                 .Select(it => $"{it.Type} {it.ParameterName}");
-            var fullTypeName = classSymbol.ToDisplayString(TypeFormat);
-            var i = fullTypeName.IndexOf('<');
-            var generic = i < 0 ? "" : fullTypeName.Substring(i);
+            var nestingStack = GetNestingAncestors(classSymbol);
+            var nestingCount = nestingStack.Count;
             var source = new StringBuilder($@"namespace {namespaceName}
-{{
-    partial class {classSymbol.Name}{generic}
+{{");
+            while (nestingStack.Any())
+            {
+                var currentNestingAncestor = nestingStack.Pop();
+
+                source.Append($@"
+    partial class {currentNestingAncestor.Name}{GetGenericsNamePart(currentNestingAncestor)}
+    {{");
+            }
+            
+            source.Append($@"
+    partial class {classSymbol.Name}{GetGenericsNamePart(classSymbol)}
     {{
         public {classSymbol.Name}({string.Join(", ", arguments)}){baseConstructorInheritance}
         {{");
@@ -104,9 +120,18 @@ namespace PrimaryConstructor
                 source.Append($@"
             this.{item.Name} = {item.ParameterName};");
             }
+
             source.Append(@"
         }
-    }
+    }");
+
+            for (int i = 0; i < nestingCount; i++)
+            {
+                source.Append(@"
+    }");
+            }
+            
+            source.Append(@"
 }
 ");
 
@@ -177,5 +202,23 @@ namespace PrimaryConstructor
                 where HasAttribute(classSymbol, nameof(PrimaryConstructorAttribute))
                 select classSymbol;
         }
+
+        private static Stack<INamedTypeSymbol> GetNestingAncestors(INamedTypeSymbol classSymbol)
+        {
+            var stack = new Stack<INamedTypeSymbol>();
+            var current = classSymbol.ContainingType;
+            while (current is not null)
+            {
+                stack.Push(current);
+                current = current.ContainingType;
+            }
+
+            return stack;
+        }
+
+        private static string GetGenericsNamePart(INamedTypeSymbol classSymbol) =>
+            classSymbol.TypeArguments.Any()
+                ? $"<{string.Join(", ", classSymbol.TypeArguments.Select(s => s.ToDisplayString(TypeFormat)))}>"
+                : "";
     }
 }
