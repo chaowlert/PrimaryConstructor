@@ -87,4 +87,16 @@ namespace PrimaryConstructor.Sample
     public class NotRegisteredDependency
     {
     }
+
+    public partial class NestingGrandMother
+    {
+        public partial class NestingFather
+        {
+            [PrimaryConstructor]
+            public partial class Nested
+            {
+                private readonly int _dummy;
+            }
+        }
+    }
 }
